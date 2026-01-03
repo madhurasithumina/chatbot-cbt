@@ -1,0 +1,51 @@
+# Core Dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# AI/ML Dependencies
+openai==1.12.0
+transformers==4.37.2
+torch==2.2.0
+sentence-transformers==2.3.1
+scikit-learn==1.4.0
+numpy==1.26.3
+pandas==2.2.0
+
+# Vector Database
+chromadb==0.4.22
+
+# Data Processing
+datasets==2.16.1
+nltk==3.8.1
+spacy==3.7.2
+
+# Database & Cache
+sqlalchemy==2.0.25
+redis==5.0.1
+psycopg2-binary==2.9.9
+
+# Utilities
+python-dotenv==1.0.0
+python-multipart==0.0.6
+aiofiles==23.2.1
+httpx==0.26.0
+
+# Logging & Monitoring
+loguru==0.7.2
+prometheus-client==0.19.0
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+
+# Development
+black==24.1.1
+flake8==7.0.0
+mypy==1.8.0
