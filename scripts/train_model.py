@@ -65,7 +65,7 @@ def main():
     logger.info("Starting CBT model training pipeline...")
     
     # Configuration
-    MODEL_NAME = "microsoft/DialoGPT-medium"
+    MODEL_NAME = "microsoft/DialoGPT-small"  # Using small model for faster download
     OUTPUT_DIR = "./data/models/cbt_model"
     NUM_EPOCHS = 3
     BATCH_SIZE = 4

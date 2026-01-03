@@ -95,9 +95,9 @@ Using curated mental health and CBT conversation datasets for training.
 - **FastAPI**: API framework
 - **PyTorch/Transformers**: Model training
 - **OpenAI GPT**: Advanced language understanding
-- **ChromaDB**: Vector database for embeddings
-- **Redis**: Session management
-- **SQLAlchemy**: Data persistence
+- **Redis**: Session management (optional)
+- **SQLAlchemy**: Data persistence (optional)
+- **ChromaDB**: Vector database (optional, requires C++ build tools)
 
 ## License
 

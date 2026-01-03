@@ -52,21 +52,35 @@ class CBTDatasetManager:
             logger.info(f"Loaded {len(dataset1)} counseling conversations")
         except Exception as e:
             logger.warning(f"Could not load counseling dataset: {e}")
+            logger.info("Continuing with other data sources...")
         
-        # Dataset 2: Mental Health Conversational Data
-        logger.info("Loading mental health conversational dataset...")
-        try:
-            dataset2 = load_dataset("heliosbrahma/mental_health_conversational_data", split="train")
-            for item in dataset2:
-                all_conversations.append({
-                    'context': item.get('prompt', item.get('input', '')),
-                    'response': item.get('response', item.get('output', '')),
-                    'source': 'conversational',
-                    'category': 'mental_health'
-                })
-            logger.info(f"Loaded {len(dataset2)} conversational entries")
-        except Exception as e:
-            logger.warning(f"Could not load conversational dataset: {e}")
+        # Dataset 2: Alternative Mental Health Datasets
+        logger.info("Loading additional mental health datasets...")
+        alternative_datasets = [
+            "Amod/mental_health_counseling_conversations",
+            "mpingale/mental-health-chat-dataset"
+        ]
+        
+        for dataset_name in alternative_datasets:
+            try:
+                dataset2 = load_dataset(dataset_name, split="train")
+                for item in dataset2:
+                    # Try different possible field names
+                    context = item.get('prompt', item.get('input', item.get('question', item.get('Context', ''))))
+                    response = item.get('response', item.get('output', item.get('answer', item.get('Response', ''))))
+                    
+                    if context and response:  # Only add if both exist
+                        all_conversations.append({
+                            'context': context,
+                            'response': response,
+                            'source': dataset_name.split('/')[-1],
+                            'category': 'mental_health'
+                        })
+                logger.info(f"Loaded {len(dataset2)} entries from {dataset_name}")
+                break  # Stop after first successful dataset
+            except Exception as e:
+                logger.warning(f"Could not load {dataset_name}: {e}")
+                continue
         
         # Dataset 3: Therapy-focused conversations
         logger.info("Adding CBT-specific examples...")
@@ -132,6 +146,66 @@ class CBTDatasetManager:
                 'response': "Procrastination often creates a cycle of stress and guilt. In CBT, we look at what thoughts and beliefs might be driving the procrastination. Sometimes it's perfectionism ('It has to be perfect'), fear of failure, or feeling overwhelmed. Let's identify what thoughts come up when you're about to start a task. We can then work on breaking tasks into smaller steps and challenging those unhelpful thoughts.",
                 'source': 'cbt_curated',
                 'category': 'procrastination'
+            },
+            {
+                'context': "My partner and I keep having the same arguments over and over.",
+                'response': "Repetitive conflicts often follow a pattern. In CBT, we can examine the thought patterns and behaviors that maintain this cycle. What do you think triggers these arguments? Understanding your automatic thoughts during conflicts can help us develop healthier communication patterns.",
+                'source': 'cbt_curated',
+                'category': 'relationships'
+            },
+            {
+                'context': "I feel like I'm not good enough compared to others.",
+                'response': "Comparing yourself to others is a common source of distress. This is called 'comparison thinking' in CBT. Remember that you're usually comparing your behind-the-scenes to everyone else's highlight reel. Let's work on identifying your own strengths and setting personal goals rather than comparing yourself to others.",
+                'source': 'cbt_curated',
+                'category': 'self_esteem'
+            },
+            {
+                'context': "I have a big exam coming up and I'm panicking.",
+                'response': "Exam anxiety is very common. Let's use some CBT strategies. First, let's identify the specific thoughts causing the panic. Are you catastrophizing about the outcome? Then we can work on practical preparation strategies and relaxation techniques. Breaking your study into manageable chunks can also help reduce overwhelm.",
+                'source': 'cbt_curated',
+                'category': 'anxiety'
+            },
+            {
+                'context': "I don't enjoy things I used to love anymore.",
+                'response': "Loss of interest in previously enjoyed activities is a common symptom of depression, called anhedonia. In CBT, we use behavioral activation to help rebuild these connections. Even when you don't feel like it, engaging in activities can help improve your mood. Let's start with small, achievable activities and gradually build up.",
+                'source': 'cbt_curated',
+                'category': 'depression'
+            },
+            {
+                'context': "I'm worried about what people think of me all the time.",
+                'response': "Constant worry about others' opinions can be exhausting. This involves 'mind reading' - assuming you know what others think. In reality, people are usually more focused on themselves than judging you. Let's work on building self-acceptance and challenging these assumptions with evidence.",
+                'source': 'cbt_curated',
+                'category': 'social_anxiety'
+            },
+            {
+                'context': "I feel overwhelmed by everything I need to do.",
+                'response': "Feeling overwhelmed often comes from trying to hold everything in your mind at once. Let's use a CBT technique: write down all your tasks, then prioritize them. Break larger tasks into smaller, manageable steps. Remember, you don't have to do everything at once. What's the most important task for today?",
+                'source': 'cbt_curated',
+                'category': 'stress'
+            },
+            {
+                'context': "I made a mistake at work and I can't stop thinking about it.",
+                'response': "Ruminating on mistakes is a common thinking pattern. In CBT, we call this 'mental filtering' - focusing only on the negative. Let's put this in perspective: What would you tell a friend in this situation? What have you learned from this? Everyone makes mistakes - they're opportunities for growth, not definitions of your worth.",
+                'source': 'cbt_curated',
+                'category': 'work_stress'
+            },
+            {
+                'context': "I feel like giving up on everything.",
+                'response': "Those feelings of hopelessness are very difficult, and I'm glad you're sharing this with me. These thoughts are symptoms of depression, not reality. While it feels overwhelming now, things can improve with support. Let's focus on small steps. Have you thought about harming yourself? If so, please reach out to a crisis helpline or mental health professional immediately.",
+                'source': 'cbt_curated',
+                'category': 'depression'
+            },
+            {
+                'context': "How do I deal with negative thoughts?",
+                'response': "Dealing with negative thoughts is central to CBT. First, notice when they occur. Then, examine the evidence for and against the thought. Ask yourself: Is this thought based on facts or feelings? What would I tell a friend thinking this? Finally, develop a more balanced, realistic thought. This takes practice, but it gets easier over time.",
+                'source': 'cbt_curated',
+                'category': 'psychoeducation'
+            },
+            {
+                'context': "I'm having panic attacks and they're terrifying.",
+                'response': "Panic attacks are frightening, but they're not dangerous, even though they feel that way. In CBT, we learn that panic attacks are your body's alarm system going off when there's no real danger. Let's work on breathing techniques, understanding the physical symptoms, and challenging the catastrophic thoughts that fuel the panic.",
+                'source': 'cbt_curated',
+                'category': 'panic'
             }
         ]
     
@@ -162,11 +236,19 @@ class CBTDatasetManager:
         """Split data into training and validation sets"""
         from sklearn.model_selection import train_test_split
         
+        # Check if we have enough samples for stratification
+        use_stratify = False
+        if 'category' in df.columns and len(df) >= 10:
+            # Check if each category has at least 2 samples
+            category_counts = df['category'].value_counts()
+            if category_counts.min() >= 2:
+                use_stratify = True
+        
         train_df, val_df = train_test_split(
             df, 
             test_size=test_size, 
             random_state=42,
-            stratify=df['category'] if 'category' in df.columns else None
+            stratify=df['category'] if use_stratify else None
         )
         
         logger.info(f"Training samples: {len(train_df)}, Validation samples: {len(val_df)}")
