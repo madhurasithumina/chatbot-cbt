@@ -6,7 +6,8 @@ Enterprise-grade API with authentication, rate limiting, and monitoring.
 """
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from datetime import datetime
@@ -39,13 +40,16 @@ async def lifespan(app: FastAPI):
     )
     
     # Initialize hybrid generator
+    api_key = settings.gemini_api_key if settings.use_free_api else settings.openai_api_key
     hybrid_generator = HybridResponseGenerator(
-        openai_api_key=settings.openai_api_key,
+        openai_api_key=api_key,
         custom_model=cbt_model,
         embedding_model_name=settings.embedding_model,
         custom_weight=settings.custom_model_weight,
         gpt_weight=settings.gpt_model_weight,
-        confidence_threshold=settings.confidence_threshold
+        confidence_threshold=settings.confidence_threshold,
+        gpt_model=settings.openai_model,
+        use_free_api=settings.use_free_api
     )
     
     # Initialize chatbot engine
@@ -76,6 +80,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Root route - serve the web UI
+@app.get("/")
+async def read_root():
+    """Serve the web interface"""
+    return FileResponse("static/index.html")
 
 
 # Request/Response Models

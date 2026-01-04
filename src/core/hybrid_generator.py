@@ -1,13 +1,23 @@
 """
 Hybrid Response Generator
 
-Combines responses from custom-trained CBT model and GPT-4 to generate
+Combines responses from custom-trained CBT model and GPT/Gemini to generate
 optimal therapeutic responses.
 """
 import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
-from openai import OpenAI
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+try:
+    from src.core.free_api_generator import FreeAPIGenerator
+    GEMINI_AVAILABLE = True
+except Exception as e:
+    GEMINI_AVAILABLE = False
+    GEMINI_ERROR = str(e)
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
@@ -40,14 +50,31 @@ class HybridResponseGenerator:
         embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         custom_weight: float = 0.4,
         gpt_weight: float = 0.6,
-        confidence_threshold: float = 0.7
+        confidence_threshold: float = 0.7,
+        gpt_model: str = "gpt-3.5-turbo",
+        use_free_api: bool = False
     ):
-        self.openai_client = OpenAI(api_key=openai_api_key)
+        self.use_free_api = use_free_api
+        
+        if use_free_api:
+            if not GEMINI_AVAILABLE:
+                logger.error(f"Gemini not available: {GEMINI_ERROR if 'GEMINI_ERROR' in dir() else 'unknown error'}")
+                raise ImportError(f"google-genai package error. Run: pip install google-genai")
+            self.free_api = FreeAPIGenerator(api_key=openai_api_key)
+            self.openai_client = None
+            logger.info("Using FREE Google Gemini API")
+        else:
+            if not OPENAI_AVAILABLE:
+                raise ImportError("openai not installed")
+            self.openai_client = OpenAI(api_key=openai_api_key)
+            self.free_api = None
+            
         self.custom_model = custom_model
         self.embedding_model = SentenceTransformer(embedding_model_name)
         self.custom_weight = custom_weight
         self.gpt_weight = gpt_weight
         self.confidence_threshold = confidence_threshold
+        self.gpt_model = gpt_model
     
     def generate_response(
         self,
@@ -72,12 +99,17 @@ class HybridResponseGenerator:
             conversation_history
         )
         
-        # Generate response from GPT-4
-        gpt_response = self._generate_gpt_response(
-            user_message, 
-            conversation_history,
-            session_context
-        )
+        # Skip GPT if API key is invalid/no credits - use only custom model
+        try:
+            # Generate response from GPT
+            gpt_response = self._generate_gpt_response(
+                user_message, 
+                conversation_history,
+                session_context
+            )
+        except Exception as e:
+            logger.warning(f"GPT unavailable, using custom model only: {e}")
+            return custom_response.text
         
         # Merge responses based on confidence and weights
         final_response = self._merge_responses(custom_response, gpt_response)
@@ -118,8 +150,22 @@ class HybridResponseGenerator:
         conversation_history: List[Dict[str, str]],
         session_context: Optional[Dict] = None
     ) -> ResponseCandidate:
-        """Generate response using GPT-4"""
+        """Generate response using GPT or free Gemini API"""
         try:
+            # Use free API if enabled
+            if self.use_free_api:
+                response_text = self.free_api.generate_response(
+                    user_message,
+                    conversation_history,
+                    session_context
+                )
+                return ResponseCandidate(
+                    text=response_text,
+                    confidence=0.9,
+                    source="gemini_free"
+                )
+            
+            # Otherwise use OpenAI
             # Build conversation context
             messages = self._build_gpt_messages(
                 user_message,
@@ -127,9 +173,9 @@ class HybridResponseGenerator:
                 session_context
             )
             
-            # Call GPT-4
+            # Call GPT
             response = self.openai_client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model=self.gpt_model,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=500
@@ -143,11 +189,11 @@ class HybridResponseGenerator:
                 source="gpt4"
             )
         except Exception as e:
-            logger.error(f"GPT-4 error: {e}")
+            logger.error(f"GPT error: {e}")
             return ResponseCandidate(
-                text="I'm here to listen and support you. Could you tell me more about what you're experiencing?",
+                text="I understand you're going through a difficult time. Let's work through this together using some CBT techniques. Can you tell me more about the specific thoughts or feelings you're experiencing right now?",
                 confidence=0.5,
-                source="gpt4_fallback"
+                source="gpt_fallback"
             )
     
     def _build_gpt_messages(

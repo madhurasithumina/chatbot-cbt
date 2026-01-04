@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_model: str = "gpt-4-turbo-preview"
     
+    # Free API (Google Gemini)
+    use_free_api: bool = False
+    gemini_api_key: Optional[str] = None
+    
     # Database
     database_url: str = "sqlite:///./data/chatbot.db"
     redis_url: Optional[str] = None
